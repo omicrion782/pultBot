@@ -1,13 +1,16 @@
 const {gameOptionsBtn, playAgainBtn} = require('./options.js') // импорт инлайн конструкций кнопок
 const TelegramApi = require('node-telegram-bot-api') // npm api для работы с ботом телеграм
 const token = '5927390543:AAGZ-JgSAxZOnZ4e_pPNhmvp01Qy-XPisao' // токен бота телеграм
+const bot = new TelegramApi (token, {polling: true}); // создание бота от класса TelegramApi
 
-
+var Datastore = require('nedb'); // подключение npm локальных БД
+var db = new Datastore({filename : 'records'}); // создание локальной БД в корне проекта
+db.loadDatabase(); // загрузка БД
 
 var Imap = require('imap');
 const { inspect } = require("util");
 
-var imap = new Imap({
+var imap = new Imap({ // параметры подключения к mail.ru
   user: 'alliancecrbot@mail.ru', // put your mail email
   password: 'vCJZNtLze7ukpwnFPRDt', // put your mail password or your mail app password
   host: 'imap.mail.ru', // put your mail host
@@ -18,9 +21,20 @@ var imap = new Imap({
 
 
 
+// db.insert({name : "Boris the Blade", year: 1246}); // добавить запись
 
-// создание бота от класса TelegramApi
-const bot = new TelegramApi (token, {polling: true});
+// db.find({year: 1246}, function (err, docs) { // найти и извлечь запись
+// 	console.log(docs); 
+// });
+
+// db.update({year: 1246}, {name: "Doug the Head", year: 1940}, {}); // обновить запись
+
+// db.remove({}, { multi: true }); // удалить все записи
+
+
+
+
+
 
 // аналог базы данных 
 const chats = {
@@ -93,8 +107,7 @@ function start () {
         })
 }
 
-
-start()
+// start()
 
 
 
@@ -121,7 +134,7 @@ const openInbox = (cb) => {
 
   imap.on("mail", (msg)=>{     // СЛУШАТЕЛЬ СОБЫТИЯ ПРИХОДЯЩЕГО СООБЩЕНИЯ
     console.log(msg);
-    // imap.openBox("INBOX", true, cb); // перезапуск фетчинга писем // npm i nedb
+    imap.openBox("INBOX", true, cb); // перезапуск фетчинга писем // 
   })
 };
 
@@ -130,7 +143,7 @@ imap.once("ready", () => {
 
   openInbox(function (err, box) {
     if (err) throw err;
-    const f = imap.seq.fetch("1:10", {                   // кол-во принимаемых сообщений
+    const f = imap.seq.fetch("1:10", { // кол-во принимаемых сообщений
       bodies: "HEADER.FIELDS (FROM TO SUBJECT DATE)",
       struct: true,
     });
@@ -138,19 +151,54 @@ imap.once("ready", () => {
 
     f.on("message", (msg, seqno) => {
       
-      console.log("Message #%d", seqno);
+      // console.log("Message #%d", seqno);
       const prefix = "(#" + seqno + ") ";
       msg.on("body", (stream, info) => {
         let buffer = "";
         stream.on("data", (chunk) => {
+
+          
+
           buffer += chunk.toString("utf8");
+          
         });
+
+
+
+
+
         stream.once("end", () => {
-          console.log(
-            prefix + "Parsed header: %s",
-            inspect(Imap.parseHeader(buffer))
-          );
+
+
+          let msgRecord = {
+            from: inspect(Imap.parseHeader(buffer).from),
+            date: inspect(Imap.parseHeader(buffer).date),
+            subject: inspect(Imap.parseHeader(buffer).subject),
+          }
+          // console.log(msgItem);
+
+          db.find({date: msgRecord.date}, function (err, docs) { // найти и извлечь запись
+          	if (!docs.length) {
+              db.insert(msgRecord);
+            } else {
+              // console.log('Такая запись уже имеется');
+            }
+          });
+
+          // db.remove({}, { multi: true }); // Очистить записи
+
+          // console.log( // ВСЕ ПАРАМЕТРЫ
+          //   prefix + "Parsed header: %s",
+          //   inspect(Imap.parseHeader(buffer))
+          // );
+          // console.log(inspect(info));
+
         });
+
+
+
+
+
       });
       msg.once("attributes", (attrs) => {
         // console.log(prefix + "Attributes: %s", inspect(attrs, false, 8));
