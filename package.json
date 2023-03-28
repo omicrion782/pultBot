@@ -10,6 +10,8 @@
   "author": "Dzmitry Litwinchyk litvat@inbox.ru",
   "license": "ISC",
   "dependencies": {
+    "emailjs-imap-client": "^3.1.0",
+    "imap": "^0.8.19",
     "node-telegram-bot-api": "^0.61.0",
     "nodemon": "^2.0.22"
   }

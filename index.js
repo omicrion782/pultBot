@@ -4,14 +4,109 @@ const TelegramApi = require('node-telegram-bot-api')
 const token = '5927390543:AAGZ-JgSAxZOnZ4e_pPNhmvp01Qy-XPisao'
 
 
+
+
+
+
+
+
+
+
+var Imap = require('imap');
+const { inspect } = require("util");
+
+var imap = new Imap({
+  user: 'alliancecrbot@mail.ru', // put your mail email
+  password: 'vCJZNtLze7ukpwnFPRDt', // put your mail password or your mail app password
+  host: 'imap.mail.ru', // put your mail host
+  port: 993, // your mail host port
+  tls: true 
+})
+
+const openInbox = (cb) => {
+  imap.openBox("INBOX", true, cb);
+
+  imap.on("mail", (msg)=>{     // СЛУШАТЕЛЬ СОБЫТИЯ ПРИХОДЯЩЕГО СООБЩЕНИЯ
+    console.log(msg);
+  })
+
+};
+imap.once("ready", () => {
+
+
+
+  openInbox(function (err, box) {
+    if (err) throw err;
+    const f = imap.seq.fetch("1:10", {                   // кол-во принимаемых сообщений
+      bodies: "HEADER.FIELDS (FROM TO SUBJECT DATE)",
+      struct: true,
+    });
+
+
+    
+
+
+
+    f.on("message", (msg, seqno) => {
+      console.log("Message #%d", seqno);
+      const prefix = "(#" + seqno + ") ";
+      msg.on("body", (stream, info) => {
+        let buffer = "";
+        stream.on("data", (chunk) => {
+          buffer += chunk.toString("utf8");
+        });
+        stream.once("end", () => {
+          console.log(
+            prefix + "Parsed header: %s",
+            inspect(Imap.parseHeader(buffer))
+          );
+        });
+      });
+      msg.once("attributes", (attrs) => {
+        // console.log(prefix + "Attributes: %s", inspect(attrs, false, 8));
+      });
+      msg.once("end", () => {
+        // console.log(prefix + "Finished");
+      });
+    });
+    f.once("error", (err) => {
+    //   console.log("Fetch error: " + err);
+    });
+   // ! // f.once("end", () => {  // отключение от почты, при разблокировке слушатель не будет работать
+   // ! //   console.log("Done fetching all messages!");
+   // ! //   imap.end();
+   // ! // });
+  });
+});
+
+imap.once("error", (err) => {
+//   console.log(err);
+});
+
+imap.once("end", () => {
+//   console.log("Connection ended");
+});
+
+imap.connect();
+
+
+
+
+
+
+
+
+
+
+
+
+
 // создание бота от класса TelegramApi
 const bot = new TelegramApi (token, {polling: true});
-
 
 // аналог базы данных 
 const chats = {
 }
-
 
     async function startGame (chatId) {
         const randomNumber = Math.floor(Math.random()*10).toString();

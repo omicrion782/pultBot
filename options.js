@@ -27,3 +27,41 @@ playAgainBtn: {
 
 
 }
+
+
+
+// const ImapClient = require('emailjs-imap-client').default;
+
+
+// (async () => {
+//     // Initialize imap client
+//     const client = new ImapClient('imap.mail.ru', 993, {
+//         logLevel: 1000,
+//         auth: {
+//             user: '',
+//             pass: ''
+//         }
+//     });
+
+//     // Handling imap mail error
+//     client.onerror = (err) => {
+//         throw new Error(`Error IMAP handling: ${err}`);
+//     };
+
+//     // Create mail connection
+//     await client.connect();
+
+//     // Getting messages on mail
+//     const listMessages = await client.listMessages('INBOX', '1:*', ['uid', 'flags', 'envelope', 'body[]']);
+
+//     for (const message of listMessages) {
+//         const messageDate = new Date(message.envelope.date);
+//         const messageSubject = message.envelope.subject;
+//         const messageBody = message['body[]'];
+
+//         console.log(messageSubject);
+//     }
+
+//     // Close mail connection
+//     await client.close();
+// })();
