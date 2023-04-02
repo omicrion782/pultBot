@@ -16,6 +16,8 @@ alliancecrbot@mail.ru coderedbot1  coderedbot1imap  vCJZNtLze7ukpwnFPRDt
 
 
 
+mail(< integer >numNewMsgs) - Emitted when new mail arrives in the currently open mailbox.
+
 
 
 

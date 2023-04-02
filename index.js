@@ -20,19 +20,12 @@ var imap = new Imap({ // параметры подключения к mail.ru
 
 
 
-
 // db.insert({name : "Boris the Blade", year: 1246}); // добавить запись
-
 // db.find({year: 1246}, function (err, docs) { // найти и извлечь запись
 // 	console.log(docs); 
 // });
-
 // db.update({year: 1246}, {name: "Doug the Head", year: 1940}, {}); // обновить запись
-
 // db.remove({}, { multi: true }); // удалить все записи
-
-
-
 
 
 
@@ -139,6 +132,7 @@ const openInbox = (cb) => {
 };
 
 
+
 imap.once("ready", () => {
 
   openInbox(function (err, box) {
@@ -150,53 +144,38 @@ imap.once("ready", () => {
 
 
     f.on("message", (msg, seqno) => {
-      
+
       // console.log("Message #%d", seqno);
       const prefix = "(#" + seqno + ") ";
       msg.on("body", (stream, info) => {
         let buffer = "";
         stream.on("data", (chunk) => {
-
-          
-
           buffer += chunk.toString("utf8");
-          
         });
 
-
-
-
-
         stream.once("end", () => {
-
-
-          let msgRecord = {
+          let msgRecord = { // Создание записи письма
             from: inspect(Imap.parseHeader(buffer).from),
             date: inspect(Imap.parseHeader(buffer).date),
             subject: inspect(Imap.parseHeader(buffer).subject),
           }
-          // console.log(msgItem);
+          // console.log(msgRecord);
 
-          db.find({date: msgRecord.date}, function (err, docs) { // найти и извлечь запись
+          db.find({date: msgRecord.date}, function (err, docs) { // проверить наличие письма
           	if (!docs.length) {
-              db.insert(msgRecord);
+              db.insert(msgRecord); // добавить письмо
             } else {
               // console.log('Такая запись уже имеется');
             }
           });
 
-          // db.remove({}, { multi: true }); // Очистить записи
+          // db.remove({}, { multi: true }); // Очистить все записи
 
           // console.log( // ВСЕ ПАРАМЕТРЫ
           //   prefix + "Parsed header: %s",
           //   inspect(Imap.parseHeader(buffer))
           // );
-          // console.log(inspect(info));
-
         });
-
-
-
 
 
       });
@@ -220,7 +199,6 @@ imap.once("ready", () => {
 imap.once("error", (err) => {
 //   console.log(err);
 });
-
 imap.once("end", () => {
 //   console.log("Connection ended");
 });

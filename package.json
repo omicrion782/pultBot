@@ -12,6 +12,7 @@
   "dependencies": {
     "emailjs-imap-client": "^3.1.0",
     "imap": "^0.8.19",
+    "mailparser": "^3.6.4",
     "nedb": "^1.8.0",
     "node-telegram-bot-api": "^0.61.0",
     "nodemon": "^2.0.22"
