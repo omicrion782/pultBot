@@ -3,12 +3,18 @@ const TelegramApi = require('node-telegram-bot-api') // npm api для рабо�
 const token = '5927390543:AAGZ-JgSAxZOnZ4e_pPNhmvp01Qy-XPisao' // токен бота телеграм
 const bot = new TelegramApi (token, {polling: true}); // создание бота от класса TelegramApi
 
+
 var Datastore = require('nedb'); // подключение npm локальных БД
 var db = new Datastore({filename : 'records'}); // создание локальной БД в корне проекта
 db.loadDatabase(); // загрузка БД
 
+var chat_db = new Datastore({filename : 'chatidstore'}); // создание локальной БД в корне проекта
+chat_db.loadDatabase(); // загрузка БД
+
+
 var Imap = require('imap');
 const { inspect } = require("util");
+const { log } = require('console');
 
 var imap = new Imap({ // параметры подключения к mail.ru
   user: 'alliancecrbot@mail.ru', // put your mail email
@@ -18,7 +24,7 @@ var imap = new Imap({ // параметры подключения к mail.ru
   tls: true 
 })
 
-
+const {MailParser} = require('mailparser');
 
 // db.insert({name : "Boris the Blade", year: 1246}); // добавить запись
 // db.find({year: 1246}, function (err, docs) { // найти и извлечь запись
@@ -29,7 +35,6 @@ var imap = new Imap({ // параметры подключения к mail.ru
 
 
 
-// аналог базы данных 
 const chats = {
 }
 
@@ -53,18 +58,21 @@ function start () {
     bot.on('message', async msg  =>  {
 
         // const msgID = msg.message_id
-    // const msgSender = msg.from.username
-    // const msgText = msg.text
-    // const msgDate = msg.date
-
-    // console.log('//////////////////////');
-    // console.log(msgID);
-    // console.log(msgSender);
-    // console.log(msgText);
-    // console.log(msgDate);
+        // const msgText = msg.text
+        // const msgDate = msg.date
+        const msgSender = msg.from.username
 
         const text = msg.text
         const chatId = msg.chat.id
+
+        // занесение ID чатов в бд, для рассылки
+chat_db.find({chatId: chatId}, function (err, docs) { 
+	if (!docs.length) {
+    chat_db.insert({chatId : chatId, sender: msgSender})
+  } else {  }
+});
+
+
 
         if (text === '/start') {
             await bot.sendSticker(chatId, './images/warden.png')
@@ -118,7 +126,10 @@ function start () {
 
 
 
-
+let chatIdArray = []
+chat_db.find({}, { multi: true }, function (err, docs) { // найти и извлечь запись
+	chatIdArray = docs;
+});
 
 
 
@@ -133,52 +144,70 @@ const openInbox = (cb) => {
 
 
 
+
+
+
+
 imap.once("ready", () => {
 
   openInbox(function (err, box) {
     if (err) throw err;
     const f = imap.seq.fetch("1:10", { // кол-во принимаемых сообщений
-      bodies: "HEADER.FIELDS (FROM TO SUBJECT DATE)",
+      bodies: '',
+      // ['HEADER.FIELDS (FROM TO SUBJECT DATE)','TEXT']
       struct: true,
     });
 
-
     f.on("message", (msg, seqno) => {
-
-      // console.log("Message #%d", seqno);
       const prefix = "(#" + seqno + ") ";
       msg.on("body", (stream, info) => {
+
+// Здесь следует формировать запись, поскольку из буфера можно вытянуть все ключи (этим и займусь далее)
         let buffer = "";
         stream.on("data", (chunk) => {
-          buffer += chunk.toString("utf8");
+          buffer += chunk.toString('utf8');
+          // console.log(buffer)  //view the body
         });
 
+
         stream.once("end", () => {
-          let msgRecord = { // Создание записи письма
+
+let contentReg = /(?<=Content-Type: text\/plain; charset="UTF-8")([\s\S]*?)(?=--0000)/g;
+let str = buffer.toString().match(contentReg);
+let content = str[0].replace(/(\r\n|\n|\r)/gm, " ");
+
+          let msgRecord = {}
+          msgRecord = { // Создание записи письма
             from: inspect(Imap.parseHeader(buffer).from),
             date: inspect(Imap.parseHeader(buffer).date),
             subject: inspect(Imap.parseHeader(buffer).subject),
+            content: content
           }
-          // console.log(msgRecord);
 
-          db.find({date: msgRecord.date}, function (err, docs) { // проверить наличие письма
-          	if (!docs.length) {
+          console.log(msgRecord);
+
+          db.find({date: msgRecord.date}, function (err, docs) { 
+            if (!docs.length) {
+  
               db.insert(msgRecord); // добавить письмо
+              chatIdArray.forEach(item=> {
+                bot.sendMessage(item.chatId, `${msgRecord.from}, ${msgRecord.subject}, ${msgRecord.date}, ${msgRecord.content}`) // оповестить о получении письма
+              })
             } else {
               // console.log('Такая запись уже имеется');
             }
           });
-
-          // db.remove({}, { multi: true }); // Очистить все записи
-
           // console.log( // ВСЕ ПАРАМЕТРЫ
           //   prefix + "Parsed header: %s",
           //   inspect(Imap.parseHeader(buffer))
           // );
+
+          // db.remove({}, { multi: true }); // Очистить все записи
         });
 
-
       });
+
+
       msg.once("attributes", (attrs) => {
         // console.log(prefix + "Attributes: %s", inspect(attrs, false, 8));
       });
@@ -186,6 +215,7 @@ imap.once("ready", () => {
         // console.log(prefix + "Finished");
       });
     });
+
     f.once("error", (err) => {
     //   console.log("Fetch error: " + err);
     });
@@ -200,7 +230,7 @@ imap.once("error", (err) => {
 //   console.log(err);
 });
 imap.once("end", () => {
-//   console.log("Connection ended");
+  // console.log("Connection ended");
 });
 
 imap.connect();
