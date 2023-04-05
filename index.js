@@ -12,6 +12,53 @@ var chat_db = new Datastore({filename : 'chatidstore'}); // создание л�
 chat_db.loadDatabase(); // загрузка БД
 
 
+
+
+
+// let chatIdArray = []
+// chat_db.find({}, { multi: true }, function (err, docs) { // найти и извлечь запись
+// 	chatIdArray = docs;
+// });
+// console.log(chatIdArray);
+
+
+
+
+
+
+
+
+function sendRecord (from, title, date, text) {
+
+  chat_db.find({}, { multi: true }, function (err, docs) { // найти и извлечь запись
+    docs.forEach(item=>{
+      // return bot.sendMessage(item.chatId, msg)
+      return bot.sendMessage(item.chatId,`${from}\n<b>${title}</b>\n<em>${date}</em>\n\n${text}`,{parse_mode : "HTML"});
+    })
+  })
+
+}
+
+// sendRecord('кто', 'что', 'когда', 'почему')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var Imap = require('imap');
 const { inspect } = require("util");
 const { log } = require('console');
@@ -106,9 +153,11 @@ chat_db.find({chatId: chatId}, function (err, docs) {
         } 
         else { return bot.sendMessage(chatId, `Неверно, число было ${chats[chatId]}`, playAgainBtn) }
         })
+
+        
 }
 
-start()
+// start()
 
 
 
@@ -126,10 +175,7 @@ start()
 
 
 
-let chatIdArray = []
-chat_db.find({}, { multi: true }, function (err, docs) { // найти и извлечь запись
-	chatIdArray = docs;
-});
+
 
 
 
@@ -197,31 +243,28 @@ if (strBase64) {
 
           let msgRecord = {}
           msgRecord = { // Создание записи письма
-            from: inspect(Imap.parseHeader(buffer).from),
-            date: inspect(Imap.parseHeader(buffer).date),
-            subject: inspect(Imap.parseHeader(buffer).subject),
-            content: content
+            from: inspect(Imap.parseHeader(buffer).from).replace(/[\<\>\[\]\']*/g,''),
+            date: inspect(Imap.parseHeader(buffer).date).replace(/[\<\>\[\]\']*/g,''),
+            subject: inspect(Imap.parseHeader(buffer).subject).replace(/[\<\>\[\]\']*/g,''),
+            content: content.replace(/[\<\>\[\]\']*/g,'')
           }
 
-                    console.log(msgRecord);
+                    // console.log(msgRecord);
 
 
-// var utf8encoded = Buffer.from(base64encoded, 'base64').toString('utf8');
-// это декодирует base64
-
-// кроме того, проблемой является то, что при автоматической пересылке сообщения из gamil, письмо имеет иной формат, что не позволяет регВыражению достать из него содержимое 
-
-
-// следующее задание: изменять кодировку при русском и английском языке письма. найди на странице npm imap 'base64' 
+// требуется найти человеческий способ доставать тело письма из сообщения
 
 
           db.find({date: msgRecord.date}, function (err, docs) { 
             if (!docs.length) {
   
+              
+              
+
+              sendRecord(msgRecord.from, msgRecord.subject, msgRecord.date, msgRecord.content)
               db.insert(msgRecord); // добавить письмо
-              chatIdArray.forEach(item=> {
-                bot.sendMessage(item.chatId, `${msgRecord.from}, ${msgRecord.subject}, ${msgRecord.date}, ${msgRecord.content}`) // оповестить о получении письма
-              })
+              
+
             } else {
               // console.log('Такая запись уже имеется');
             }

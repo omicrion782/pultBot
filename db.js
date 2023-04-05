@@ -1,0 +1,1 @@
+// var Datastore = require('nedb'); // подключение npm локальных БД
