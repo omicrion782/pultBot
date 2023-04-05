@@ -108,7 +108,7 @@ chat_db.find({chatId: chatId}, function (err, docs) {
         })
 }
 
-// start()
+start()
 
 
 
@@ -172,9 +172,28 @@ imap.once("ready", () => {
 
         stream.once("end", () => {
 
-let contentReg = /(?<=Content-Type: text\/plain; charset="UTF-8")([\s\S]*?)(?=--0000)/g;
-let str = buffer.toString().match(contentReg);
-let content = str[0].replace(/(\r\n|\n|\r)/gm, " ");
+
+
+let contentBase64Reg = /(?<=Content-Transfer-Encoding: base64)([\s\S]*?)(?=--)/g;
+let strBase64 = buffer.toString().match(contentBase64Reg);
+let content = ''
+if (strBase64) {
+  
+  let encodedBase64 = strBase64[0].replace(/(\r\n|\n|\r)/gm, " ");
+  content = Buffer.from(encodedBase64, 'base64').toString('utf8').trim();
+  
+} else { 
+  // content = 'ОШИБКА, str[0] не найден'
+  let contentReg = /(?<=Content-Type: text\/plain; charset="UTF-8")([\s\S]*?)(?=--0000)/g;
+  let str = buffer.toString().match(contentReg);
+  content = str[0].replace(/(\r\n|\n|\r)/gm, " ").trim()
+}
+
+
+
+
+
+
 
           let msgRecord = {}
           msgRecord = { // Создание записи письма
@@ -184,7 +203,17 @@ let content = str[0].replace(/(\r\n|\n|\r)/gm, " ");
             content: content
           }
 
-          console.log(msgRecord);
+                    console.log(msgRecord);
+
+
+// var utf8encoded = Buffer.from(base64encoded, 'base64').toString('utf8');
+// это декодирует base64
+
+// кроме того, проблемой является то, что при автоматической пересылке сообщения из gamil, письмо имеет иной формат, что не позволяет регВыражению достать из него содержимое 
+
+
+// следующее задание: изменять кодировку при русском и английском языке письма. найди на странице npm imap 'base64' 
+
 
           db.find({date: msgRecord.date}, function (err, docs) { 
             if (!docs.length) {
