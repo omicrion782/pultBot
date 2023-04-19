@@ -4,47 +4,13 @@ const token = '5927390543:AAGZ-JgSAxZOnZ4e_pPNhmvp01Qy-XPisao' // токен б�
 const bot = new TelegramApi (token, {polling: true}); // создание бота от класса TelegramApi
 
 
-var Datastore = require('nedb'); // подключение npm локальных БД
-var db = new Datastore({filename : 'records'}); // создание локальной БД в корне проекта
-db.loadDatabase(); // загрузка БД
-
-
-var chat_db = new Datastore({filename : 'chatidstore'}); // создание локальной БД в корне проекта
-chat_db.loadDatabase(); // загрузка БД
-
-
-
-
-
-
-// const {a,b} = require('./db.js') ////////////////////
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+const Db = require('./dataBase/db.js') //
 
 
 
 
 function sendRecord (from, title, date, text) {
-  chat_db.find({}, { multi: true }, function (err, docs) { // найти и извлечь запись
+  Db.module.chatsStore.find({}, { multi: true }, function (err, docs) { // найти и извлечь запись
     docs.forEach(item=>{
       // return bot.sendMessage(item.chatId, msg)
       return bot.sendMessage(item.chatId,`${from}\n<em>${date}</em>\n<b>${title}</b>\n\n${text}`,{parse_mode : "HTML"});
@@ -67,7 +33,7 @@ var imap = new Imap({ // параметры подключения к mail.ru
   tls: true 
 })
 
-// const {MailParser} = require('mailparser'); ////////////////////
+
 
 // db.insert({name : "Boris the Blade", year: 1246}); // добавить запись
 // db.find({year: 1246}, function (err, docs) { // найти и извлечь запись
@@ -104,14 +70,14 @@ function start () {
         // const msgText = msg.text
         // const msgDate = msg.date
         const msgSender = msg.from.username
-
         const text = msg.text
         const chatId = msg.chat.id
 
         // занесение ID чатов в бд, для рассылки
-chat_db.find({chatId: chatId}, function (err, docs) { 
+Db.module.chatsStore.find({chatId: chatId}, function (err, docs) { 
 	if (!docs.length) {
-    chat_db.insert({chatId : chatId, sender: msgSender})
+    Db.module.chatsStore.insert({chatId : chatId, sender: msgSender});
+    bot.sendMessage(chatId, 'Теперь вы будете получать уведомления от бота')
   } else {  }
 });
 
@@ -119,10 +85,10 @@ chat_db.find({chatId: chatId}, function (err, docs) {
 
         if (text === '/start') {
             await bot.sendSticker(chatId, './images/warden.png')
-            return bot.sendMessage(chatId, 'Здарова Варден, надеюсь на плодотворное сотрудничество.')
+            return bot.sendMessage(chatId, 'Chat has been started')
         }
         if (text === '/info') {
-            return bot.sendMessage(chatId, `Мы находимся в чате ${chatId}`)
+            return bot.sendMessage(chatId, `Бот отправляет все данные письма, когда оно приходит на почту`)
         }
 
         if (text === '/game') {
@@ -194,7 +160,7 @@ imap.once("ready", () => {
 
   openInbox(function (err, box) {
     if (err) throw err;
-    const f = imap.seq.fetch("1:10", { // кол-во принимаемых сообщений
+    const f = imap.seq.fetch(box.messages.total + ':*', { // кол-во принимаемых сообщений - принимать все сообщения
       bodies: '',
       // ['HEADER.FIELDS (FROM TO SUBJECT DATE)','TEXT']
       struct: true,
@@ -251,14 +217,15 @@ if (strBase64) {
 // требуется найти человеческий способ доставать тело письма из сообщения
 
 
-          db.find({date: msgRecord.date}, function (err, docs) { 
+          Db.module.recordsStore.find({date: msgRecord.date}, function (err, docs) { 
             if (!docs.length) {
   
               
-              
+             
 
               sendRecord(msgRecord.from, msgRecord.subject, msgRecord.date, msgRecord.content)
-              db.insert(msgRecord); // добавить письмо
+
+              Db.module.recordsStore.insert(msgRecord); // добавить письмо
               
 
             } else {
@@ -270,7 +237,7 @@ if (strBase64) {
           //   inspect(Imap.parseHeader(buffer))
           // );
 
-          // db.remove({}, { multi: true }); // Очистить все записи
+          // Db.module.recordsStore.remove({}, { multi: true }); // Очистить все записи
         });
 
       });
@@ -285,7 +252,7 @@ if (strBase64) {
     });
 
     f.once("error", (err) => {
-    //   console.log("Fetch error: " + err);
+      // console.log("Fetch error: " + err);
     });
    // ! // f.once("end", () => {  // отключение от почты, при разблокировке слушатель не будет работать
    // ! //   console.log("Done fetching all messages!");
