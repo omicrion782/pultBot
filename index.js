@@ -8,6 +8,7 @@ var Datastore = require('nedb'); // подключение npm локальны�
 var db = new Datastore({filename : 'records'}); // создание локальной БД в корне проекта
 db.loadDatabase(); // загрузка БД
 
+
 var chat_db = new Datastore({filename : 'chatidstore'}); // создание локальной БД в корне проекта
 chat_db.loadDatabase(); // загрузка БД
 
@@ -15,11 +16,25 @@ chat_db.loadDatabase(); // загрузка БД
 
 
 
-// let chatIdArray = []
-// chat_db.find({}, { multi: true }, function (err, docs) { // найти и извлечь запись
-// 	chatIdArray = docs;
-// });
-// console.log(chatIdArray);
+
+// const {a,b} = require('./db.js') ////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29,32 +44,13 @@ chat_db.loadDatabase(); // загрузка БД
 
 
 function sendRecord (from, title, date, text) {
-
   chat_db.find({}, { multi: true }, function (err, docs) { // найти и извлечь запись
     docs.forEach(item=>{
       // return bot.sendMessage(item.chatId, msg)
-      return bot.sendMessage(item.chatId,`${from}\n<b>${title}</b>\n<em>${date}</em>\n\n${text}`,{parse_mode : "HTML"});
+      return bot.sendMessage(item.chatId,`${from}\n<em>${date}</em>\n<b>${title}</b>\n\n${text}`,{parse_mode : "HTML"});
     })
   })
-
 }
-
-// sendRecord('кто', 'что', 'когда', 'почему')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -71,7 +67,7 @@ var imap = new Imap({ // параметры подключения к mail.ru
   tls: true 
 })
 
-const {MailParser} = require('mailparser');
+// const {MailParser} = require('mailparser'); ////////////////////
 
 // db.insert({name : "Boris the Blade", year: 1246}); // добавить запись
 // db.find({year: 1246}, function (err, docs) { // найти и извлечь запись
@@ -157,7 +153,7 @@ chat_db.find({chatId: chatId}, function (err, docs) {
         
 }
 
-// start()
+start()
 
 
 
@@ -249,7 +245,7 @@ if (strBase64) {
             content: content.replace(/[\<\>\[\]\']*/g,'')
           }
 
-                    // console.log(msgRecord);
+                    console.log(msgRecord);
 
 
 // требуется найти человеческий способ доставать тело письма из сообщения
