@@ -1,17 +1,12 @@
 allianceCR_bot                 5927390543:AAGZ-JgSAxZOnZ4e_pPNhmvp01Qy-XPisaoAPI ботов Telegram
 
-
-установить гит, выкачать проект с гита, установить node.js, установить npm
-
-npm sequelize работа с базами данных node js
-
-1. создать локальную базу данных node.js 
-2. научить бота воспринимать полученные сообщения с gmail
-
+установить VSC, установить nodejs, git, выкачать проект с гита
 
 
 alliancecrbot@gmail.com coderedbot
-alliancecrbot@mail.ru coderedbot1  coderedbot1imap  vCJZNtLze7ukpwnFPRDt
+
+alliancecrbot@mail.ru coderedbot1  
+	coderedbot1imap  vCJZNtLze7ukpwnFPRDt
 
 
 

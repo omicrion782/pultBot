@@ -5,7 +5,7 @@ const bot = new TelegramApi (token, {polling: true}); // создание бот
 
 
 const Db = require('./dataBase/db.js') //
-
+const { returnTrueValue } = require('./utils.js')
 
 
 
@@ -119,7 +119,7 @@ Db.module.chatsStore.find({chatId: chatId}, function (err, docs) {
         
 }
 
-start()
+// start()
 
 
 
@@ -145,7 +145,7 @@ const openInbox = (cb) => {
   imap.openBox("INBOX", true, cb);
 
   imap.on("mail", (msg)=>{     // СЛУШАТЕЛЬ СОБЫТИЯ ПРИХОДЯЩЕГО СООБЩЕНИЯ
-    console.log(msg);
+    // console.log(msg);
     imap.openBox("INBOX", true, cb); // перезапуск фетчинга писем // 
   })
 };
@@ -160,7 +160,7 @@ imap.once("ready", () => {
 
   openInbox(function (err, box) {
     if (err) throw err;
-    const f = imap.seq.fetch(box.messages.total + ':*', { // кол-во принимаемых сообщений - принимать все сообщения
+    const f = imap.seq.fetch('1:' + box.messages.total, { // кол-во принимаемых сообщений - принимать все сообщения
       bodies: '',
       // ['HEADER.FIELDS (FROM TO SUBJECT DATE)','TEXT']
       struct: true,
@@ -181,27 +181,33 @@ imap.once("ready", () => {
         stream.once("end", () => {
 
 
-
-let contentBase64Reg = /(?<=Content-Transfer-Encoding: base64)([\s\S]*?)(?=--)/g;
-let strBase64 = buffer.toString().match(contentBase64Reg);
 let content = ''
-if (strBase64) {
-  
-  let encodedBase64 = strBase64[0].replace(/(\r\n|\n|\r)/gm, " ");
-  content = Buffer.from(encodedBase64, 'base64').toString('utf8').trim();
-  
-} else { 
-  // content = 'ОШИБКА, str[0] не найден'
-  let contentReg = /(?<=Content-Type: text\/plain; charset="UTF-8")([\s\S]*?)(?=--0000)/g;
-  let str = buffer.toString().match(contentReg);
-  content = str[0].replace(/(\r\n|\n|\r)/gm, " ").trim()
+
+let str64Reg = /(?<=Content-Transfer-Encoding: base64)([\s\S]*?)(?=--)/g;
+let strReg = /(?<=Content-Type: text\/plain; charset=)([\s\S]*?)(?=--0000)/g;
+let str64RegLat = /(?<=d,29c317a)([\s\S]*?)$/g;
+let str64 = returnTrueValue(buffer.toString().match(str64Reg), buffer.toString().match(strReg), buffer.toString().match(str64RegLat));
+
+
+function setContent (str64) {
+
+  if (str64[0].includes('"UTF-8"')) {
+    return str64[0].replace(/(\r\n|\n|\r|"UTF-8")/gm, " ").trim()
+  } else {
+    let encodedBase64 = str64[0].replace(/(\r\n|\n|\r)/gm, " ");
+    return Buffer.from(encodedBase64, 'base64').toString('utf8').trim();
+  }
+
 }
 
 
+if (str64) {
+  content = setContent(str64)
+} else { 
+  content = 'не удалось расшифровать тело письма'
+}
 
-
-
-
+console.log(buffer);
 
           let msgRecord = {}
           msgRecord = { // Создание записи письма
@@ -210,28 +216,18 @@ if (strBase64) {
             subject: inspect(Imap.parseHeader(buffer).subject).replace(/[\<\>\[\]\']*/g,''),
             content: content.replace(/[\<\>\[\]\']*/g,'')
           }
-
-                    console.log(msgRecord);
-
-
 // требуется найти человеческий способ доставать тело письма из сообщения
+          // console.log(msgRecord);
 
 
           Db.module.recordsStore.find({date: msgRecord.date}, function (err, docs) { 
             if (!docs.length) {
-  
-              
-             
-
-              sendRecord(msgRecord.from, msgRecord.subject, msgRecord.date, msgRecord.content)
-
-              Db.module.recordsStore.insert(msgRecord); // добавить письмо
-              
-
-            } else {
-              // console.log('Такая запись уже имеется');
+              // sendRecord(msgRecord.from, msgRecord.subject, msgRecord.date, msgRecord.content)
+              // Db.module.recordsStore.insert(msgRecord); // добавить письмо
             }
           });
+
+
           // console.log( // ВСЕ ПАРАМЕТРЫ
           //   prefix + "Parsed header: %s",
           //   inspect(Imap.parseHeader(buffer))
@@ -262,10 +258,10 @@ if (strBase64) {
 });
 
 imap.once("error", (err) => {
-//   console.log(err);
+  console.log(err);
 });
 imap.once("end", () => {
-  // console.log("Connection ended");
+  console.log("Connection ended");
 });
 
 imap.connect();
