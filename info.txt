@@ -1,4 +1,8 @@
-allianceCR_bot                 5927390543:AAGZ-JgSAxZOnZ4e_pPNhmvp01Qy-XPisaoAPI ботов Telegram
+allianceCR_bot                 
+
+5927390543:AAGZ-JgSAxZOnZ4e_pPNhmvp01Qy-XPisao    токен бота телеграм       
+                   
+API ботов Telegram
 
 установить VSC, установить nodejs, git, выкачать проект с гита
 

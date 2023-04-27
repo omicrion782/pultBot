@@ -3,21 +3,19 @@ const TelegramApi = require('node-telegram-bot-api') // npm api для рабо�
 const token = '5927390543:AAGZ-JgSAxZOnZ4e_pPNhmvp01Qy-XPisao' // токен бота телеграм
 const bot = new TelegramApi (token, {polling: true}); // создание бота от класса TelegramApi
 
+const Db = require('./dataBase/db.js') // получение класса с базами данных из файла-модуля
 
-const Db = require('./dataBase/db.js') //
-const { returnTrueValue } = require('./utils.js')
+const simpleParser = require('mailparser').simpleParser; // позволяет без ебли получать все данные письма
 
-
+// const { returnTrueValue } = require('./utils/utils.js')
 
 function sendRecord (from, title, date, text) {
   Db.module.chatsStore.find({}, { multi: true }, function (err, docs) { // найти и извлечь запись
     docs.forEach(item=>{
-      // return bot.sendMessage(item.chatId, msg)
       return bot.sendMessage(item.chatId,`${from}\n<em>${date}</em>\n<b>${title}</b>\n\n${text}`,{parse_mode : "HTML"});
     })
   })
 }
-
 
 
 
@@ -35,12 +33,12 @@ var imap = new Imap({ // параметры подключения к mail.ru
 
 
 
-// db.insert({name : "Boris the Blade", year: 1246}); // добавить запись
+
 // db.find({year: 1246}, function (err, docs) { // найти и извлечь запись
 // 	console.log(docs); 
 // });
 // db.update({year: 1246}, {name: "Doug the Head", year: 1940}, {}); // обновить запись
-// db.remove({}, { multi: true }); // удалить все записи
+
 
 
 
@@ -170,8 +168,38 @@ imap.once("ready", () => {
       const prefix = "(#" + seqno + ") ";
       msg.on("body", (stream, info) => {
 
-// Здесь следует формировать запись, поскольку из буфера можно вытянуть все ключи (этим и займусь далее)
+
+
+
+simpleParser(stream, (err, mail) => { // Парсинг всех данных
+
+        let msgRecord = {}
+          msgRecord = { // Создание записи письма
+            from: mail.from.text.replace(/[\<\>\[\]\']*/g,''),
+            date: inspect(Imap.parseHeader(buffer).date).replace(/[\<\>\[\]\']*/g,''),
+            subject: mail.subject.replace(/[\<\>\[\]\']*/g,''),
+            content: mail.text.replace(/[\<\>\[\]\']*/g,'')
+          }
+
+        console.log(msgRecord);
+
+        Db.module.recordsStore.find({date: msgRecord.date}, function (err, docs) { 
+          if (!docs.length) {
+            // sendRecord(msgRecord.from, msgRecord.subject, msgRecord.date,msgRecord.content)
+            // Db.module.recordsStore.insert(msgRecord); // добавить письмо
+          }
+        });
+
+
+// Db.module.recordsStore.remove({}, { multi: true }); // Очистить все записи
+
+});
+
+
+
         let buffer = "";
+
+
         stream.on("data", (chunk) => {
           buffer += chunk.toString('utf8');
           // console.log(buffer)  //view the body
@@ -180,60 +208,11 @@ imap.once("ready", () => {
 
         stream.once("end", () => {
 
-
-let content = ''
-
-let str64Reg = /(?<=Content-Transfer-Encoding: base64)([\s\S]*?)(?=--)/g;
-let strReg = /(?<=Content-Type: text\/plain; charset=)([\s\S]*?)(?=--0000)/g;
-let str64RegLat = /(?<=d,29c317a)([\s\S]*?)$/g;
-let str64 = returnTrueValue(buffer.toString().match(str64Reg), buffer.toString().match(strReg), buffer.toString().match(str64RegLat));
-
-
-function setContent (str64) {
-
-  if (str64[0].includes('"UTF-8"')) {
-    return str64[0].replace(/(\r\n|\n|\r|"UTF-8")/gm, " ").trim()
-  } else {
-    let encodedBase64 = str64[0].replace(/(\r\n|\n|\r)/gm, " ");
-    return Buffer.from(encodedBase64, 'base64').toString('utf8').trim();
-  }
-
-}
-
-
-if (str64) {
-  content = setContent(str64)
-} else { 
-  content = 'не удалось расшифровать тело письма'
-}
-
-console.log(buffer);
-
-          let msgRecord = {}
-          msgRecord = { // Создание записи письма
-            from: inspect(Imap.parseHeader(buffer).from).replace(/[\<\>\[\]\']*/g,''),
-            date: inspect(Imap.parseHeader(buffer).date).replace(/[\<\>\[\]\']*/g,''),
-            subject: inspect(Imap.parseHeader(buffer).subject).replace(/[\<\>\[\]\']*/g,''),
-            content: content.replace(/[\<\>\[\]\']*/g,'')
-          }
-// требуется найти человеческий способ доставать тело письма из сообщения
-          // console.log(msgRecord);
-
-
-          Db.module.recordsStore.find({date: msgRecord.date}, function (err, docs) { 
-            if (!docs.length) {
-              // sendRecord(msgRecord.from, msgRecord.subject, msgRecord.date, msgRecord.content)
-              // Db.module.recordsStore.insert(msgRecord); // добавить письмо
-            }
-          });
-
-
           // console.log( // ВСЕ ПАРАМЕТРЫ
           //   prefix + "Parsed header: %s",
           //   inspect(Imap.parseHeader(buffer))
           // );
 
-          // Db.module.recordsStore.remove({}, { multi: true }); // Очистить все записи
         });
 
       });
@@ -244,6 +223,8 @@ console.log(buffer);
       });
       msg.once("end", () => {
         // console.log(prefix + "Finished");
+
+        
       });
     });
 
